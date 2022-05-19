@@ -1,0 +1,636 @@
+---
+title: " "
+output:
+   html_document:
+     css: style.css
+---
+
+
+
+<font size="5"> Data analysis for: </font>
+
+<p align = "justify">
+<font size="4"> Padilla Perez, D.J. & Angilletta Jr., M.J. (2022). Macroclimatic and maternal effects on the evolution of reproductive traits in lizards. *Ecology and Evolution*.</font>
+</p>
+
+
+</p></p>
+
+[Dylan J. Padilla Perez](https://dylanpadilla.netlify.app/), School of Life Sciences, Arizona State University, Tempe, AZ 85287, USA.
+</p></p>
+
+
+<b>
+<font size="4"> Library </font>
+</b>
+
+```{r,  echo = TRUE, warning = FALSE, message = FALSE}
+
+require(geiger)
+require(caper)
+require(phylopath)
+require(ggplot2)
+require(ggtree)
+require(ggtreeExtra)
+require(gridExtra)
+require(grid)
+require(ggraph)
+require(kableExtra)
+
+```
+
+```{r, warning = FALSE, comment = " "}
+R.version
+```
+
+```{r,  echo = TRUE, warning = FALSE, comment = " "}
+
+data <- read.csv("sites.csv", row.names = 1)
+data_bt <- read.csv("sps_body_temp.csv", row.names = 1)
+qgis_data <- read.csv("qgis_data.csv", row.names = 1)
+tree <- read.tree("tree.nex")
+
+colnames(qgis_data)[1] <- "Binomial"
+mer_data <- merge(qgis_data, data, by = "Binomial")
+mer_data <- na.omit(mer_data)
+rownames(mer_data) <- mer_data$Binomial
+
+mer2 <- merge(data_bt, qgis_data, by = "Binomial")
+mer2 <- na.omit(mer2)
+rownames(mer2) <- mer2$Binomial
+head(mer2)
+
+tapply(data$annual_temp, data$Family, length)
+tapply(mer_data$annual_temp, mer_data$Family, length)
+tapply(mer2$female.SVL, mer2$Family, length)
+
+
+## Environmental temperature dataset
+
+n1 <- mer_data[mer_data$Family != "Amphisbaenidae", ]
+
+
+## Body temperature data
+
+b1 <- mer2[mer2$Family != "Amphisbaenidae", ]
+dat <- (n1)
+
+
+dat$mclutch <- (dat$smallest.mean.clutch.size + dat$largest.mean.clutch.size) / 2
+
+
+## Data for the Phylogeny
+
+n2 <- data[data$Family != "Amphisbaenidae", ]
+dtree <- n2
+names(dtree)
+
+dtree$mclutch <- (dtree$smallest.mean.clutch.size + dtree$largest.mean.clutch.size) / 2
+
+
+check_t <- name.check(tree, dtree)
+rm_phy_t <- check_t$tree_not_data
+rm_dat_t <- check_t$data_not_tree
+ctree_t <- drop.tip(tree, rm_phy_t)
+dtree <- subset(dtree, subset = dtree$Binomial %in% ctree_t$tip, select = names(dtree)[1:19])
+name.check(ctree_t, dtree)
+ctree_t
+
+```
+
+
+```{r, echo = TRUE, warning = FALSE, comment = " ", fig.align = "center", fig.height = 7, fig.width = 7}
+
+p <- ggtree(ctree_t, layout='circular', colour = "purple")
+
+
+p + geom_fruit(data=dtree, geom=geom_bar, mapping=aes(x=log(female.SVL), y = Binomial, fill = "Maternal length (mm)"), pwidth = 0.1, stat="identity", orientation="y", colour = "#FDED95") + geom_fruit(data=dtree, geom=geom_bar, mapping=aes(x=hatchling.neonate.SVL, y = Binomial, fill = "Hatchling length (mm)"), pwidth = 0.1, stat="identity", orientation="y", colour = "#A0E3FE") + geom_fruit(data=dtree, geom=geom_bar, mapping=aes(x=mclutch, y = Binomial, fill = "Clutch size"), pwidth = 0.07, stat="identity", orientation="y", colour = "#FE97BA") + scale_fill_manual(values=c("#FE97BA", "#A0E3FE", "#FDED95"), guide=guide_legend(keywidth=0.5, keyheight=0.5, order=6, title = "")) + theme(legend.position=c(0.59, 0.461), legend.title=element_text(size=0), legend.text=element_text(size=6), legend.spacing.x = unit(0.06, "cm"))
+
+```
+<p align="justify">
+<font size="4"> **Figure 3.** Evolution of the reproductive output among 669 species of lizards. The dataset used to perform path analyses was reduced to 486 species because we could not extract data of climatic variables for all species present in the phylogeny.</font>
+</p>
+<br><br><br>
+
+
+
+```{r, echo = TRUE, warning = FALSE, comment = " ", fig.align = "center", fig.height = 7, fig.width = 7}
+
+dat_bt_diurnal <- (b1)
+
+
+dat_bt_diurnal$mclutch <- (dat_bt_diurnal$smallest.mean.clutch.size + dat_bt_diurnal$largest.mean.clutch.size) / 2
+
+dat_bt_diurnal$mean_bt <- (dat_bt_diurnal$minimum.mean.Tb + dat_bt_diurnal$maximum.mean.Tb) / 2
+
+dat_bt_diurnal <- na.omit(dat_bt_diurnal)
+
+tapply(dat_bt_diurnal$female.SVL, dat_bt_diurnal$Family, length)
+names(dat_bt_diurnal)
+
+
+## Cheking whether the species names macth the tips of the tree
+
+check <- name.check(tree, dat)
+rm_phy <- check$tree_not_data
+rm_dat <- check$data_not_tree
+
+check_bt_diurnal <- name.check(tree, dat_bt_diurnal)
+rm_phy_bt_diurnal <- check_bt_diurnal$tree_not_data
+rm_dat_bt_diurnal <- check_bt_diurnal$data_not_tree
+
+
+## Droping species names from the phylogeny
+
+ctree <- drop.tip(tree, rm_phy)
+ctree_bt_diurnal <- drop.tip(tree, rm_phy_bt_diurnal)
+
+cdat <- subset(dat, subset = dat$Binomial %in% ctree$tip, select = names(dat)[1:30])
+name.check(ctree, cdat)
+names(cdat)
+names(cdat)[c(17, 18, 30, 7, 11, 9)] <- c("FS", "HS", "CS", "ET", "PP", "PR")
+
+
+cdat$PR <- log1p(cdat$PR)
+cdat$PP <- log1p(cdat$PP)
+cdat <- na.omit(cdat)
+
+check <- name.check(tree, cdat)
+rm_phy <- check$tree_not_data
+rm_dat <- check$data_not_tree
+ctree <- drop.tip(tree, rm_phy)
+name.check(ctree, cdat)
+str(cdat)
+
+
+cdat_bt_diurnal <- subset(dat_bt_diurnal, subset = dat_bt_diurnal$Binomial %in% ctree_bt_diurnal$tip, select = names(dat_bt_diurnal)[1:32])
+name.check(ctree_bt_diurnal, cdat_bt_diurnal)
+names(cdat_bt_diurnal)
+names(cdat_bt_diurnal)[c(5, 6, 31, 32, 29, 27)] <- c("FS", "HS", "CS", "BT", "PP", "PR")
+
+cdat_bt_diurnal$PR <- log1p(cdat_bt_diurnal$PR)
+cdat_bt_diurnal$PP <- log(cdat_bt_diurnal$PP)
+
+cdat_bt_diurnal <- na.omit(cdat_bt_diurnal)
+
+check_bt_diurnal <- name.check(tree, cdat_bt_diurnal)
+rm_phy_bt_diurnal <- check_bt_diurnal$tree_not_data
+rm_dat_bt_diurnal <- check_bt_diurnal$data_not_tree
+ctree_bt_diurnal <- drop.tip(tree, rm_phy_bt_diurnal)
+name.check(ctree_bt_diurnal, cdat_bt_diurnal)
+
+str(cdat_bt_diurnal)
+
+```
+
+
+```{r,  echo = TRUE, warning = FALSE, message = FALSE, comment = " ", fig.align = "center", fig.height = 7, fig.width = 7}
+
+
+ml3 <- define_model_set(
+    null = c(),
+    "(a)" = c(HS ~ ET),
+    "(b)" = c(FS ~ ET),
+    "(c)" = c(FS ~ ET, HS ~ ET),
+    "(d)" = c(FS ~ PP),
+    "(e)" = c(FS ~ PR),
+    "(f)" = c(HS ~ PR),
+    "(g)" = c(FS ~ PR, HS ~ PR),
+    "(h)" = c(FS ~ PP + PR + ET, HS ~ ET, HS ~ PR),
+    .common = c(CS ~ FS + HS, HS ~ FS, ET ~ PR, PP ~ ET, PP ~ PR))
+
+
+
+ml4 <- define_model_set(
+    null = c(),
+    "(a)" = c(HS ~ BT),
+    "(b)" = c(FS ~ BT),
+    "(c)" = c(FS ~ BT, HS ~ BT),
+    "(d)" = c(FS ~ PP),
+    "(e)" = c(FS ~ PR),
+    "(f)" = c(HS ~ PR),
+    "(g)" = c(FS ~ PR, HS ~ PR),
+    "(h)" = c(FS ~ PP + PR + BT, HS ~ BT, HS ~ PR),
+    .common = c(CS ~ FS + HS, HS ~ FS, BT ~ PR, BT ~ PP, PP ~ PR))
+
+
+```
+
+
+```{r, results = "asis", echo = TRUE, fig.align = "center", fig.height = 7, fig.width = 7}
+
+
+set_graph_style(family = "Times New Roman")
+
+positions <- data.frame(name = c('PP', 'PR', 'ET', 'FS', 'HS', '', 'CS'), x = c(2:3, c(2.5, 1.75, 3.25, 2), 2.5), y = c(3, 3, 2.3, 2, 2, 2, 1))
+
+plot_model_set(ml3, manual_layout = positions, text_size = 3, edge_width = 0.7)
+
+
+mo <- phylo_path(ml3, cdat, ctree)
+s <- summary(mo)
+theme_set(theme_bw())
+plot(s)
+
+```
+
+<b>
+<font size="4"> Table S1.</font>
+</b>
+
+
+```{r, results = "asis", echo = TRUE, fig.align = "center", fig.height = 7, fig.width = 7}
+
+kable(summary(mo)[ , 2:9], digits = 3) %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "center")
+
+```
+
+
+```{r, results = "asis", echo = TRUE, fig.align = "center", fig.height = 7, fig.width = 7}
+
+
+positions.bt <- data.frame(name = c('PP', 'PR', 'BT', 'FS', 'HS', '', 'CS'), x = c(2:3, c(2.6, 1.75, 3.25, 2), 2.5), y = c(3, 3, 2.2, 2, 2, 2, 1))
+
+set_graph_style(family = "Times New Roman")
+
+
+plot_model_set(ml4, manual_layout = positions.bt, text_size = 3, edge_width = 0.7)
+```
+<p align = "justify">
+<font size="4"> **Figure 1.** Path models depicting relationships among body temperature and life-history traits derived from optimality models (see text for details). Abbreviation in the path diagrams are as follows: BT = body temperature; CS = clutch size; FS = maternal length; HS = hatchling/neonate length; PP = primary production; PR = annual precipitation.</font>
+</p>
+
+<br><br><br>
+
+
+```{r, results = "asis", echo = TRUE, fig.align = "center", fig.height = 7, fig.width = 7}
+
+mo_bt_diurnal <- phylo_path(ml4, cdat_bt_diurnal, ctree_bt_diurnal)
+s.bt <- summary(mo_bt_diurnal)
+theme_set(theme_bw())
+plot(s.bt)
+
+```
+<p align = "justify">
+<font size="4"> **Figure 4.** Relative importance of the causal models describing the evolution of reproductive traits in lizards.</font>
+</p>
+
+<br><br><br>
+
+
+
+<font size="4"> **Table S2.**</font>
+
+```{r, results = "asis", echo = TRUE, fig.align = "center", fig.height = 7, fig.width = 7}
+
+kable(summary(mo_bt_diurnal)[ , 2:9], digits = 3) %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "center")
+
+```
+
+
+
+```{r, echo = TRUE, warning = FALSE, comment = " ", fig.align = "center", fig.height = 7, fig.width = 7}
+
+mo$d_sep
+
+mo_bt_diurnal$d_sep
+
+```
+
+<br><br><br>
+
+<b>
+<font size="4"> Model averaging </font>
+</b>
+
+<br><br><br>
+
+```{r, echo = TRUE, warning = FALSE, comment = " ", fig.align = "center", fig.height = 7, fig.width = 7}
+
+
+avg <- average(mo, avg_method = "full", cut_off = 2)
+avg
+
+avg_bt_diurnal <- average(mo_bt_diurnal, avg_method = "full", cut_off = 2)
+avg_bt_diurnal
+
+```
+
+
+```{r, echo = TRUE, message = FALSE, comment = "", warning = FALSE, fig.align = "center", fig.height = 7, fig.width = 7}
+
+
+set_graph_style(family = "Times New Roman", text_size = 12)
+
+d2 <- plot(avg_bt_diurnal, manual_layout = positions.bt, text_size = 4.2, edge_width = 0.05, curvature = -0, colors = c("brown", "black")) + ggplot2::scale_x_continuous(expand = c(0.2, 0)) + ggplot2::scale_y_continuous(expand = c(0.1, 0)) + theme(plot.margin=unit(c(0, 0, 0, 0), "cm")) + theme(legend.text = element_text(size = 13, family = "serif")) + theme(plot.title = element_text(size = 14, family = "serif", face = "bold")) + annotate(geom = "text", x = 2.74, y = 2.07, angle = 0, label = "(±0.02)", size = 3.8) + annotate(geom = "text", angle = 300, x = 2.33, y = 1.38, label = "(±0.09)", size = 3.8) + annotate(geom = "text", x = 3.06, y = 1.63, angle = 59, label = "(±0.10)", size = 3.8) + ggtitle("n = 320") + theme(plot.title = element_text(hjust = 0.566, vjust = -10), legend.position = "none")
+
+d3 <- plot(avg, manual_layout = positions, text_size = 4.2, edge_width = 0.05, curvature = -0, colors = c("brown", "black")) + ggplot2::scale_x_continuous(expand = c(0.2, 0)) + ggplot2::scale_y_continuous(expand = c(0.1, 0)) + theme(plot.margin=unit(c(0, 0, 0, 0), "cm")) + theme(legend.text = element_text(size = 13, family = "serif")) + theme(plot.title = element_text(size = 14, family = "serif", face = "bold")) + annotate(geom = "text", x = 2.74, y = 2.07, angle = 0, label = "(±0.02)", size = 3.8) + annotate(geom = "text", angle = 300, x = 2.33, y = 1.38, label = "(±0.08)", size = 3.8) + annotate(geom = "text", x = 3.06, y = 1.63, angle = 59, label = "(±0.09)", size = 3.8) + theme(plot.title = element_text(hjust = 0.57, vjust = -10), legend.position = "none") + ggtitle("n = 439")
+
+
+grob <- grobTree(textGrob("(a)", x = 0.09,  y = 0.97, hjust = 0, gp = gpar(fontsize = 12, fontface = "bold", fontfamily = "Times New Roman")))
+
+grob2 <- grobTree(textGrob("(b)", x = 0.09,  y = 0.97, hjust = 0, gp = gpar(fontsize = 12, fontface = "bold", fontfamily = "Times New Roman")))
+
+c1 <- d2 + annotate(geom = "text", x = 2.73, y = 2.934, angle = 0, label = "(±0.02)", size = 3.8) + annotate(geom = "text", x = 3.26, y = 2.324, angle = 280, label = "(±0.02)", size = 3.8) + annotate(geom = "text", x = 2.26, y = 2.57, angle = 298, label = "(±0.08)", size = 3.8) + annotate(geom = "text", x = 2.95, y = 2.75, angle = 72, label = "(±0.08)", size = 3.8) + annotate(geom = "text", x = 2.58, y = 2.59, angle = 48, label = "(±0.04)", size = 3.8) + annotate(geom = "text", x = 1.6, y = 3, label = "(a)", size = 5, fontface = 2)
+
+c2 <- d3 + annotate(geom = "text", x = 2.73, y = 2.934, angle = 0, label = "(±0.02)", size = 3.8) + annotate(geom = "text", x = 3.26, y = 2.324, angle = 278, label = "(±0.02)", size = 3.8) + annotate(geom = "text", x = 2.28, y = 2.69, angle = 298, label = "(±0.02)", size = 3.8) + annotate(geom = "text", x = 2.92, y = 2.78, angle = 66, label = "(±0.04)", size = 3.8) + annotate(geom = "text", x = 2.58, y = 2.59, angle = 48, label = "(±0.02)", size = 3.8) + annotate(geom = "text", x = 1.6, y = 3, label = "(b)", size = 5, fontface = 2)
+
+quartz()
+grid.arrange(grobs = list(c1, c2), ncol = 2, vp = viewport(width = 1.1, height = 0.8), layout_matrix = rbind(c(1, 2), c(1, 2)))
+
+
+
+```
+<p align = "justify">
+<font size="4"> **Figure 2.** Best-fit models of the evolution of reproductive traits considering body temperature (a) and environmental temperature (b) as independent variable. Thicker arrows indicate stronger effects. Values in parentheses denote the standard errors of the path coefficients.</font>
+</p>
+
+
+
+
+<br><br><br><br><br><br><br><br><br><br><br>
+
+<p align = "justify">
+<font size="4"> **The following section consists of the same analyses but, this time, we use female mass and hatchling mass as measures of maternal size and hatchling size.**</font>
+</p>
+
+<br><br><br>
+
+```{r,  echo = TRUE, warning = FALSE, comment = " "}
+
+
+rm(list = ls())
+
+
+
+data <- read.csv("sites.csv", row.names = 1)
+data_bt <- read.csv("sps_body_temp.csv", row.names = 1)
+qgis_data <- read.csv("qgis_data.csv", row.names = 1)
+tree <- read.tree("tree.nex")
+
+colnames(qgis_data)[1] <- "Binomial"
+mer_data <- merge(qgis_data, data, by = "Binomial")
+mer_data <- na.omit(mer_data)
+rownames(mer_data) <- mer_data$Binomial
+
+mer2 <- merge(data_bt, qgis_data, by = "Binomial")
+mer2 <- na.omit(mer2)
+rownames(mer2) <- mer2$Binomial
+head(mer2)
+
+tapply(data$annual_temp, data$Family, length)
+tapply(mer_data$annual_temp, mer_data$Family, length)
+tapply(mer2$female.SVL, mer2$Family, length)
+
+
+## Environmental temperature dataset
+
+n1 <- mer_data[mer_data$Family != "Amphisbaenidae", ]
+
+
+## Body temperature data
+
+b1 <- mer2[mer2$Family != "Amphisbaenidae", ]
+dat <- (n1)
+
+
+dat$mclutch <- (dat$smallest.mean.clutch.size + dat$largest.mean.clutch.size) / 2
+tapply(dat$annual_temp, dat$Family, length)
+str(dat)
+
+
+## Data for the Phylogeny
+
+n2 <- data[data$Family != "Amphisbaenidae", ]
+dtree <- n2
+names(dtree)
+
+dtree$mclutch <- (dtree$smallest.mean.clutch.size + dtree$largest.mean.clutch.size) / 2
+
+
+check_t <- name.check(tree, dtree)
+rm_phy_t <- check_t$tree_not_data
+rm_dat_t <- check_t$data_not_tree
+ctree_t <- drop.tip(tree, rm_phy_t)
+dtree <- subset(dtree, subset = dtree$Binomial %in% ctree_t$tip, select = names(dtree)[1:19])
+name.check(ctree_t, dtree)
+ctree_t
+
+```
+
+
+```{r, echo = TRUE, warning = FALSE, comment = " ", fig.align = "center", fig.height = 7, fig.width = 7}
+
+p <- ggtree(ctree_t, layout='circular', colour = "purple")
+
+
+p + geom_fruit(data=dtree, geom=geom_bar, mapping=aes(x=log(female_mass), y = Binomial, fill = "Maternal mass (g)"), pwidth = 0.1, stat="identity", orientation="y", colour = "#FDED95") + geom_fruit(data=dtree, geom=geom_bar, mapping=aes(x=log(hatchling_mass), y = Binomial, fill = "Hatchling mass (g)"), pwidth = 0.1, stat="identity", orientation="y", colour = "#A0E3FE") + geom_fruit(data=dtree, geom=geom_bar, mapping=aes(x=mclutch, y = Binomial, fill = "Clutch size"), pwidth = 0.07, stat="identity", orientation="y", colour = "#FE97BA") + scale_fill_manual(values=c("#FE97BA", "#A0E3FE", "#FDED95"), guide=guide_legend(keywidth=0.5, keyheight=0.5, order=6, title = "")) + theme(legend.position=c(0.59, 0.461), legend.title=element_text(size=0), legend.text=element_text(size=6), legend.spacing.x = unit(0.06, "cm"))
+
+```
+
+
+```{r, echo = TRUE, warning = FALSE, comment = " ", fig.align = "center", fig.height = 7, fig.width = 7}
+
+dat_bt_diurnal <- (b1)
+
+
+dat_bt_diurnal$mclutch <- (dat_bt_diurnal$smallest.mean.clutch.size + dat_bt_diurnal$largest.mean.clutch.size) / 2
+
+dat_bt_diurnal$mean_bt <- (dat_bt_diurnal$minimum.mean.Tb + dat_bt_diurnal$maximum.mean.Tb) / 2
+
+dat_bt_diurnal <- na.omit(dat_bt_diurnal)
+
+tapply(dat_bt_diurnal$female.SVL, dat_bt_diurnal$Family, length)
+names(dat_bt_diurnal)
+
+
+## Cheking whether the species names macth the tips of the tree
+
+check <- name.check(tree, dat)
+rm_phy <- check$tree_not_data
+rm_dat <- check$data_not_tree
+
+check_bt_diurnal <- name.check(tree, dat_bt_diurnal)
+rm_phy_bt_diurnal <- check_bt_diurnal$tree_not_data
+rm_dat_bt_diurnal <- check_bt_diurnal$data_not_tree
+
+
+## Droping species names from the phylogeny
+
+ctree <- drop.tip(tree, rm_phy)
+ctree_bt_diurnal <- drop.tip(tree, rm_phy_bt_diurnal)
+
+cdat <- subset(dat, subset = dat$Binomial %in% ctree$tip, select = names(dat)[1:30])
+name.check(ctree, cdat)
+names(cdat)
+names(cdat)[c(21, 22, 30, 7, 11, 9)] <- c("FS", "HS", "CS", "ET", "PP", "PR")
+
+
+cdat$PR <- log1p(cdat$PR)
+cdat$PP <- log1p(cdat$PP)
+cdat <- na.omit(cdat)
+
+check <- name.check(tree, cdat)
+rm_phy <- check$tree_not_data
+rm_dat <- check$data_not_tree
+ctree <- drop.tip(tree, rm_phy)
+name.check(ctree, cdat)
+str(cdat)
+
+
+cdat_bt_diurnal <- subset(dat_bt_diurnal, subset = dat_bt_diurnal$Binomial %in% ctree_bt_diurnal$tip, select = names(dat_bt_diurnal)[1:32])
+name.check(ctree_bt_diurnal, cdat_bt_diurnal)
+names(cdat_bt_diurnal)
+names(cdat_bt_diurnal)[c(9, 10, 31, 32, 29, 27)] <- c("FS", "HS", "CS", "BT", "PP", "PR")
+
+cdat_bt_diurnal$PR <- log1p(cdat_bt_diurnal$PR)
+cdat_bt_diurnal$PP <- log(cdat_bt_diurnal$PP)
+
+cdat_bt_diurnal <- na.omit(cdat_bt_diurnal)
+
+check_bt_diurnal <- name.check(tree, cdat_bt_diurnal)
+rm_phy_bt_diurnal <- check_bt_diurnal$tree_not_data
+rm_dat_bt_diurnal <- check_bt_diurnal$data_not_tree
+ctree_bt_diurnal <- drop.tip(tree, rm_phy_bt_diurnal)
+name.check(ctree_bt_diurnal, cdat_bt_diurnal)
+
+str(cdat_bt_diurnal)
+
+```
+
+
+```{r,  echo = TRUE, warning = FALSE, message = FALSE, comment = " ", fig.align = "center", fig.height = 7, fig.width = 7}
+
+
+ml3 <- define_model_set(
+    null = c(),
+    "(a)" = c(HS ~ ET),
+    "(b)" = c(FS ~ ET),
+    "(c)" = c(FS ~ ET, HS ~ ET),
+    "(d)" = c(FS ~ PP),
+    "(e)" = c(FS ~ PR),
+    "(f)" = c(HS ~ PR),
+    "(g)" = c(FS ~ PR, HS ~ PR),
+    "(h)" = c(FS ~ PP + PR + ET, HS ~ ET, HS ~ PR),
+    .common = c(CS ~ FS + HS, HS ~ FS, ET ~ PR, PP ~ ET, PP ~ PR))
+
+
+
+ml4 <- define_model_set(
+    null = c(),
+    "(a)" = c(HS ~ BT),
+    "(b)" = c(FS ~ BT),
+    "(c)" = c(FS ~ BT, HS ~ BT),
+    "(d)" = c(FS ~ PP),
+    "(e)" = c(FS ~ PR),
+    "(f)" = c(HS ~ PR),
+    "(g)" = c(FS ~ PR, HS ~ PR),
+    "(h)" = c(FS ~ PP + PR + BT, HS ~ BT, HS ~ PR),
+    .common = c(CS ~ FS + HS, HS ~ FS, BT ~ PR, BT ~ PP, PP ~ PR))
+
+
+```
+
+
+```{r, results = "asis", echo = TRUE, fig.align = "center", fig.height = 7, fig.width = 7}
+
+
+positions <- data.frame(name = c('PP', 'PR', 'ET', 'FS', 'HS', '', 'CS'), x = c(2:3, c(2.5, 1.75, 3.25, 2), 2.5), y = c(3, 3, 2.3, 2, 2, 2, 1))
+
+mo <- phylo_path(ml3, cdat, ctree)
+s <- summary(mo)
+theme_set(theme_bw())
+plot(s)
+
+```
+
+<b>
+<font size="4"> Table S3.</font>
+</b>
+
+
+```{r, results = "asis", echo = TRUE, fig.align = "center", fig.height = 7, fig.width = 7}
+
+kable(summary(mo)[ , 2:9], digits = 3) %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "center")
+
+```
+
+
+
+```{r, results = "asis", echo = TRUE, fig.align = "center", fig.height = 7, fig.width = 7}
+
+
+positions.bt <- data.frame(name = c('PP', 'PR', 'BT', 'FS', 'HS', '', 'CS'), x = c(2:3, c(2.6, 1.75, 3.25, 2), 2.5), y = c(3, 3, 2.2, 2, 2, 2, 1))
+
+mo_bt_diurnal <- phylo_path(ml4, cdat_bt_diurnal, ctree_bt_diurnal)
+s.bt <- summary(mo_bt_diurnal)
+theme_set(theme_bw())
+plot(s.bt)
+
+```
+
+<font size="4"> **Table S4.**</font>
+
+```{r, results = "asis", echo = TRUE, fig.align = "center", fig.height = 7, fig.width = 7}
+
+kable(summary(mo_bt_diurnal)[ , 2:9], digits = 3) %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "center")
+
+```
+
+
+
+```{r, echo = TRUE, warning = FALSE, comment = " ", fig.align = "center", fig.height = 7, fig.width = 7}
+
+mo$d_sep
+
+mo_bt_diurnal$d_sep
+
+```
+
+<br><br><br>
+
+<b>
+<font size="4"> Model averaging </font>
+</b>
+
+<br><br><br>
+
+```{r, echo = TRUE, warning = FALSE, comment = " ", fig.align = "center", fig.height = 7, fig.width = 7}
+
+
+avg <- average(mo, avg_method = "full", cut_off = 2)
+avg
+
+avg_bt_diurnal <- average(mo_bt_diurnal, avg_method = "full", cut_off = 2)
+avg_bt_diurnal
+
+```
+
+
+```{r, echo = TRUE, message = FALSE, comment = "", warning = FALSE, fig.align = "center", fig.height = 7, fig.width = 7}
+
+
+set_graph_style(family = "Times New Roman", text_size = 12)
+
+d2 <- plot(avg_bt_diurnal, manual_layout = positions.bt, text_size = 4.2, edge_width = 0.05, curvature = -0, colors = c("brown", "black")) + ggplot2::scale_x_continuous(expand = c(0.2, 0)) + ggplot2::scale_y_continuous(expand = c(0.1, 0)) + theme(plot.margin=unit(c(0, 0, 0, 0), "cm")) + theme(legend.text = element_text(size = 13, family = "serif")) + theme(plot.title = element_text(size = 14, family = "serif", face = "bold")) + annotate(geom = "text", x = 2.74, y = 2.07, angle = 0, label = "", size = 3.8) + annotate(geom = "text", angle = 300, x = 2.33, y = 1.38, label = "", size = 3.8) + annotate(geom = "text", x = 3.06, y = 1.63, angle = 59, label = "", size = 3.8) + ggtitle("n = 320") + theme(plot.title = element_text(hjust = 0.566, vjust = -10), legend.position = "none")
+
+d3 <- plot(avg, manual_layout = positions, text_size = 4.2, edge_width = 0.05, curvature = -0, colors = c("brown", "black")) + ggplot2::scale_x_continuous(expand = c(0.2, 0)) + ggplot2::scale_y_continuous(expand = c(0.1, 0)) + theme(plot.margin=unit(c(0, 0, 0, 0), "cm")) + theme(legend.text = element_text(size = 13, family = "serif")) + theme(plot.title = element_text(size = 14, family = "serif", face = "bold")) + annotate(geom = "text", x = 2.74, y = 2.07, angle = 0, label = "", size = 3.8) + annotate(geom = "text", angle = 300, x = 2.33, y = 1.38, label = "", size = 3.8) + annotate(geom = "text", x = 3.06, y = 1.63, angle = 59, label = "", size = 3.8) + theme(plot.title = element_text(hjust = 0.57, vjust = -10), legend.position = "none") + ggtitle("n = 439")
+
+
+grob <- grobTree(textGrob("(a)", x = 0.09,  y = 0.97, hjust = 0, gp = gpar(fontsize = 12, fontface = "bold", fontfamily = "Times New Roman")))
+
+grob2 <- grobTree(textGrob("(b)", x = 0.09,  y = 0.97, hjust = 0, gp = gpar(fontsize = 12, fontface = "bold", fontfamily = "Times New Roman")))
+
+c1 <- d2 + annotate(geom = "text", x = 2.73, y = 2.934, angle = 0, label = "", size = 3.8) + annotate(geom = "text", x = 3.26, y = 2.324, angle = 280, label = "", size = 3.8) + annotate(geom = "text", x = 2.26, y = 2.57, angle = 298, label = "", size = 3.8) + annotate(geom = "text", x = 2.95, y = 2.75, angle = 72, label = "", size = 3.8) + annotate(geom = "text", x = 2.58, y = 2.59, angle = 48, label = "", size = 3.8) + annotate(geom = "text", x = 1.6, y = 3, label = "(a)", size = 5, fontface = 2)
+
+c2 <- d3 + annotate(geom = "text", x = 2.73, y = 2.934, angle = 0, label = "", size = 3.8) + annotate(geom = "text", x = 3.26, y = 2.324, angle = 278, label = "", size = 3.8) + annotate(geom = "text", x = 2.28, y = 2.69, angle = 298, label = "", size = 3.8) + annotate(geom = "text", x = 2.92, y = 2.78, angle = 66, label = "", size = 3.8) + annotate(geom = "text", x = 2.58, y = 2.59, angle = 48, label = "", size = 3.8) + annotate(geom = "text", x = 1.6, y = 3, label = "(b)", size = 5, fontface = 2)
+
+quartz()
+grid.arrange(grobs = list(c1, c2), ncol = 2, vp = viewport(width = 1.1, height = 0.8), layout_matrix = rbind(c(1, 2), c(1, 2)))
+
+
+```
