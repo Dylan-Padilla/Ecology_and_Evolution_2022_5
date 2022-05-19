@@ -69,7 +69,7 @@ We used Phylogenetic Path Analysis (van der Bijl, 2018) to test our hypotheses o
 
 DATA-SPECIFIC INFORMATION FOR: sites.csv
 
-1. Number of variables: The dataset consist of a data frame containing 865 observations of 14 variables.
+1. Number of variables: The dataset consists of a data frame containing 865 observations of 14 variables.
 
 2. Number of cases/rows: 865 observations
 
@@ -88,7 +88,7 @@ DATA-SPECIFIC INFORMATION FOR: sites.csv
 
 DATA-SPECIFIC INFORMATION FOR: sps_body_temp.csv
 
-1. Number of variables: The dataset consist of a data frame containing 625 observations and 15 variables for nocturnal species.
+1. Number of variables: The dataset consists of a data frame containing 625 observations and 15 variables for nocturnal species.
 
 2. Number of cases/rows: 625 observations
 
@@ -105,7 +105,7 @@ DATA-SPECIFIC INFORMATION FOR: sps_body_temp.csv
 
 DATA-SPECIFIC INFORMATION FOR: qgis_data.csv
 
-1. Number of variables: The dataset consist of a data frame containing 9802 observations and 12 variables for nocturnal species.
+1. Number of variables: The dataset consists of a data frame containing 9802 observations and 12 variables for nocturnal species.
 
 2. Number of cases/rows: 9802 observations
 
